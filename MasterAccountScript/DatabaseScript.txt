@@ -1,0 +1,32 @@
+﻿CREATE DATABASE MasterUserAccountDB;
+GO
+
+USE MasterUserAccountDB;
+GO
+
+CREATE TABLE Users (
+  UserID INT PRIMARY KEY IDENTITY(1,1),
+  Username NVARCHAR(50) UNIQUE NOT NULL,
+  Password NVARCHAR(50) NOT NULL,
+  Email NVARCHAR(100) UNIQUE NOT NULL,
+  FirstName NVARCHAR(50),
+  LastName NVARCHAR(50),
+  Phone NVARCHAR(20),
+  Address NVARCHAR(200),
+  CreatedDate DATETIME DEFAULT(GETDATE()),
+  LastModifiedDate DATETIME DEFAULT(GETDATE())
+);
+
+CREATE TABLE Applications (
+  ApplicationID INT PRIMARY KEY IDENTITY(1,1),
+  Name NVARCHAR(50) NOT NULL
+);
+
+CREATE TABLE UserApplications (
+  UserApplicationID INT PRIMARY KEY IDENTITY(1,1),
+  UserID INT NOT NULL,
+  ApplicationID INT NOT NULL,
+  UserCredentials NVARCHAR(50) NOT NULL,
+  CONSTRAINT FK_UserApplications_Users FOREIGN KEY (UserID) REFERENCES Users(UserID),
+  CONSTRAINT FK_UserApplications_Applications FOREIGN KEY (ApplicationID) REFERENCES Applications(ApplicationID)
+);
