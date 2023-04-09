@@ -5,4 +5,5 @@
 4. Make sure the connection string is the right
 5. The solution contains a 2 project(api project and mvc project named admin panel)
 6. Run application
-7. Enjoy
+7. (HRTestSystem) is a client app  just to test the Api and functionalities(you can find the project in this repo)
+8. Enjoy
