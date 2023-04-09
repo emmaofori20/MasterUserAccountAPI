@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
+using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -37,12 +38,35 @@ namespace MasterUserAccountAPI.Controllers
             }
 
             var token = GenerateJwtToken(user);
-
+            var applications = _context.UserApplications.Where(x => x.UserId == user.UserId).ToList();
+            bool check = CheckIfUserBelongsToApplication(user.UserId, model.ApplicationId);
             return Ok(new
             {
                 UserId = user.UserId,
                 Username = user.Username,
-                Token = token
+                Token = token,
+                UserBelongsToApplication = check,
+            });
+        } 
+        
+        
+        [HttpPost("Login")]
+        public IActionResult Login([FromBody] LoginModel model)
+        {
+            var user = _context.Users.SingleOrDefault(u => u.Username == model.Username && u.Password == model.Password);
+
+            if (user == null)
+            {
+                return BadRequest(new { message = "Username or password is incorrect" });
+            }
+
+            var token = GenerateJwtToken(user);
+            var applications = _context.UserApplications.Where(x => x.UserId == user.UserId).ToList();
+            return Ok(new
+            {
+                UserId = user.UserId,
+                Username = user.Username,
+                Token = token,
             });
         }
 
@@ -50,6 +74,28 @@ namespace MasterUserAccountAPI.Controllers
         public async Task<ActionResult<IEnumerable<User>>> GetUsers()
         {
             return await _context.Users.ToListAsync();
+        } 
+        
+        [HttpGet("Applications")]
+        public async Task<ActionResult<IEnumerable<Application>>> GetApplication()
+        {
+            return await _context.Applications.ToListAsync();
+        }
+
+        [HttpPost]
+        [Route("resetpassword")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordViewModel model)
+        {
+            // TODO: Implement password reset logic
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == model.Username);
+            if (user == null)
+            {
+                // User with this email address not found
+                return NotFound();
+            }
+
+            user.Password = model.Password;
+            return Ok();
         }
 
 
@@ -68,13 +114,37 @@ namespace MasterUserAccountAPI.Controllers
         }
 
         [Authorize]
-        [HttpPost]
+        [HttpPost("CreateUser")]
         public async Task<ActionResult<User>> CreateUser(User user)
         {
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
             return CreatedAtAction(nameof(GetUser), new { id = user.UserId }, user);
+        }
+
+        [Authorize]
+        [HttpGet("GetUserApplicationAssignment/{id}")]
+        public async Task<ActionResult<IEnumerable<UserApplication>>> GetUserApplicationAssignment(int id)
+        {
+            return await _context.UserApplications.Where(x=>x.UserId == id).ToListAsync();
+        }
+
+        [Authorize]
+        [HttpGet("AssignUserToApplication")]
+        public async Task<ActionResult<User>> AssignUser([FromBody] IsAssidnedUser model)
+        {
+            foreach (var item in model.ApplicationId)
+            {
+                _context.UserApplications.Add(new UserApplication { 
+                    ApplicationId = item,
+                    UserId = model.UserId,
+                    UserCredentials= "TestCredentials"
+                });
+            }
+            await _context.SaveChangesAsync();
+
+            return Ok();
         }
 
         [Authorize]
@@ -127,6 +197,12 @@ namespace MasterUserAccountAPI.Controllers
         {
             return _context.Users.Any(e => e.UserId == id);
         }
+
+        private bool CheckIfUserBelongsToApplication(int UserId, int ApplicationId)
+        {
+            return _context.UserApplications.Any(x => x.UserId == UserId && x.ApplicationId == ApplicationId);
+        }
+
 
         private string GenerateJwtToken(User user)
         {
