@@ -131,20 +131,41 @@ namespace MasterUserAccountAPI.Controllers
         }
 
         [Authorize]
-        [HttpGet("AssignUserToApplication")]
-        public async Task<ActionResult<User>> AssignUser([FromBody] IsAssidnedUser model)
+        [HttpPost("AssignUserToApplication")]
+        public async Task<ActionResult> AssignUser([FromBody] IsAssidnedUser model)
         {
-            foreach (var item in model.ApplicationId)
+            if (model.ApplicationId.Count == 0)
             {
-                _context.UserApplications.Add(new UserApplication { 
-                    ApplicationId = item,
-                    UserId = model.UserId,
-                    UserCredentials= "TestCredentials"
-                });
+               var results = _context.UserApplications.Where(x=>x.UserId == model.UserId).ToList();
+                foreach (var item in results)
+                {
+                    _context.UserApplications.Remove(item);
+                }
             }
-            await _context.SaveChangesAsync();
+            else
+            {
+				foreach (var item in model.ApplicationId)
+				{
+					if (_context.UserApplications.Any(x => x.UserId == model.UserId && x.UserApplicationId == item))
+					{
 
-            return Ok();
+					}
+					else
+					{
+						_context.UserApplications.Add(new UserApplication
+						{
+							ApplicationId = item,
+							UserId = model.UserId,
+							UserCredentials = "TestCredentials"
+						});
+					}
+
+				}
+			}
+
+			await _context.SaveChangesAsync();
+
+			return Ok();
         }
 
         [Authorize]
